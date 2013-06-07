@@ -1,0 +1,33 @@
+#!env /usr/bin/python2
+
+import sys
+import os
+
+testme_version = "0.1"
+
+def testme_usage():
+    print "TestMe version", testme_version
+    print
+    print sys.argv[0], "[dir=.]", "[opts]"
+    print
+    print "* Options:"
+    print "\t-c --category category_name [...]"
+    print "\t\tSpecify category(ies) to test"
+    print "\t-a --all"
+    print "\t\tRun all tests (default option)"
+    print "\t--config path"
+    print "\t\tSpecify configuration file"
+    print "\t-v --verbose"
+    print "\t\tActivate verbose mode"
+
+def parse_argv():
+    if len(sys.argv) == 1:
+        testme_usage()
+        exit(0)
+    if sys.argv[1][0] != '-':
+        print "ok"
+
+def main():
+    parse_argv()
+
+main()
