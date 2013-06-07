@@ -10,6 +10,10 @@ testme_config_name = "testme.conf"
 testme_verbose = 0
 testme_to_run = {}
 
+def run_tests():
+    for category in testme_to_run:
+        print "[TESTME] Running tests in", category
+
 def die_on_error(msg):
     sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
     sys.exit(1)
@@ -18,9 +22,15 @@ def default_category(cat_name):
     return {'stdout' : 0, # Stdout test
             'stdin' : 0, # Stdin test
             'stderr' : 0, # Stderr test
-            'stdout_dir' : testme_running_dir + "/" + cat_name + "/out",
-            'stdin_dir' : testme_running_dir + "/" + cat_name + "/in",
-            'stderr_dir' : testme_running_dir + "/" + cat_name + "/err",
+            'input' : 0, # Input test
+            'input_dir' : testme_running_dir + "/" + cat_name + "/input",
+            'stdout_dir' : testme_running_dir + "/" + cat_name + "/stdout",
+            'stdin_dir' : testme_running_dir + "/" + cat_name + "/stdin",
+            'stderr_dir' : testme_running_dir + "/" + cat_name + "/stderr",
+            'input_ext' : 'inp',
+            'stdout_ext' : 'out',
+            'stdin_ext' : 'in',
+            'stderr_ext' : 'err',
             'cmd_line' : '',
             'check_code' : 0,
             'error_code' : 0,
@@ -76,6 +86,11 @@ def parse_config():
         get_string(config_file, testme_to_run, section, 'stdin_dir')
         get_string(config_file, testme_to_run, section, 'stderr_dir')
         get_string(config_file, testme_to_run, section, 'cmd_line')
+        get_string(config_file, testme_to_run, section, 'input_ext')
+        get_string(config_file, testme_to_run, section, 'stdin_ext')
+        get_string(config_file, testme_to_run, section, 'stdout_ext')
+        get_string(config_file, testme_to_run, section, 'stderr_ext')
+        get_string(config_file, testme_to_run, section, 'cmd_line')
         get_bool(config_file, testme_to_run, section, 'check_code')
         get_int(config_file, testme_to_run, section, 'error_code')
         get_bool(config_file, testme_to_run, section, 'display_ok_tests')
@@ -116,10 +131,10 @@ def parse_argv():
         if arg == '-v':
             testme_verbose = 1
 
-
 def main():
     parse_argv()
     print_verbose("[TESTME] Running directory : " + testme_running_dir)
     parse_config()
+    run_tests()
 
 main()

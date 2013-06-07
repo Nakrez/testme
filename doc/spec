@@ -2,11 +2,12 @@
 
     -> 1 directory = 1 category
     -> stdout check -> default = off
-                    -> default directory = ${TESTME_CATEGORY_DIR}/out)
+                    -> default directory = ${TESTME_CATEGORY_DIR}/stdout)
+    -> input files  -> default directory = ${TESTME_CATEGORY_DIR}/input)
     -> stderr check -> default = off
-                    -> default directory = ${TESTME_CATEGORY_DIR}/err)
+                    -> default directory = ${TESTME_CATEGORY_DIR}/stderr)
     -> stdin        -> default = off
-                    -> default directory = ${TESTME_CATEGORY_DIR}/in)
+                    -> default directory = ${TESTME_CATEGORY_DIR}/stdin)
 
     -> command line invocation -> mandatory (see command line variables section)
     -> error code check -> default = off
@@ -38,6 +39,6 @@ test_me [dir = .] [opts]
     - TESTME_CATEGORY_DIR
         The root directory of the category (only available when specifying
                                             a category)
-    - TESTME_CATEGORY_[OUT][IN][ERR]DIR
-        The out/in/err directory of the category (only available when specifying
-                                                  a category)
+    - TESTME_RUNNING_INPUT
+        This variable will take the value of the input value read.
+        Only use in cmd_line option
