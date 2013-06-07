@@ -2,8 +2,89 @@
 
 import sys
 import os
+import ConfigParser
 
 testme_version = "0.1"
+testme_running_dir = os.getcwd()
+testme_config_name = "testme.conf"
+testme_verbose = 0
+testme_to_run = {}
+
+def die_on_error(msg):
+    sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
+    sys.exit(1)
+
+def default_category(cat_name):
+    return {'stdout' : 0, # Stdout test
+            'stdin' : 0, # Stdin test
+            'stderr' : 0, # Stderr test
+            'stdout_dir' : testme_running_dir + "/" + cat_name + "/out",
+            'stdin_dir' : testme_running_dir + "/" + cat_name + "/in",
+            'stderr_dir' : testme_running_dir + "/" + cat_name + "/err",
+            'cmd_line' : '',
+            'check_code' : 0,
+            'error_code' : 0,
+            'display_ok_tests' : 1,
+            'diplay_ko_tests' : 1,
+            'display_summary' : 1}
+
+def get_bool(config, dico, section, value):
+    try:
+        dico[section][value] = config.getboolean(section, value);
+    except ConfigParser.NoOptionError:
+        return 0
+    except:
+        die_on_error(value + " in section '" + section + "' is not a boolean")
+
+def parse_string(string):
+    return string
+
+def get_string(config, dico, section, value):
+    try:
+        txt = config.get(section, value)
+        dico[section][value] = parse_string(txt)
+        return
+    except ConfigParser.NoOptionError:
+        return
+    except:
+        die_on_error(value + " in section '" + section + "' is not a string")
+
+def get_int(config, dico, section, value):
+    try:
+        return config.getint(section, value);
+    except ConfigParser.NoOptionError:
+        return 0
+    except:
+        die_on_error(value + " in section '" + section + "' is not a boolean")
+
+def parse_config():
+    global testme_to_run
+
+    config_full_path = testme_running_dir + "/" + testme_config_name
+    print_verbose("[TESTME] Parsing configuration file : " + config_full_path)
+
+    config_file = ConfigParser.RawConfigParser()
+    config_file.read(config_full_path)
+
+    for section in config_file.sections():
+        testme_to_run[section] = default_category(section)
+
+        get_bool(config_file, testme_to_run, section, 'stdout')
+        get_bool(config_file, testme_to_run, section, 'stdin')
+        get_bool(config_file, testme_to_run, section, 'stderr')
+        get_string(config_file, testme_to_run, section, 'stdout_dir')
+        get_string(config_file, testme_to_run, section, 'stdin_dir')
+        get_string(config_file, testme_to_run, section, 'stderr_dir')
+        get_string(config_file, testme_to_run, section, 'cmd_line')
+        get_bool(config_file, testme_to_run, section, 'check_code')
+        get_int(config_file, testme_to_run, section, 'error_code')
+        get_bool(config_file, testme_to_run, section, 'display_ok_tests')
+        get_bool(config_file, testme_to_run, section, 'diplay_ko_tests')
+        get_bool(config_file, testme_to_run, section, 'display_summary')
+
+def print_verbose(msg):
+    if testme_verbose:
+        print msg
 
 def testme_usage():
     print "TestMe version", testme_version
@@ -21,13 +102,24 @@ def testme_usage():
     print "\t\tActivate verbose mode"
 
 def parse_argv():
-    if len(sys.argv) == 1:
-        testme_usage()
-        exit(0)
-    if sys.argv[1][0] != '-':
-        print "ok"
+    global testme_running_dir, testme_verbose
+    argc = 1
+
+    if len (sys.argv) == 1:
+        return # No option to parse
+
+    if sys.argv[1][0] != '-': # Running directory specified
+        testme_running_dir += "/" + sys.argv[1]
+        argc = 2
+
+    for arg in sys.argv[argc:]:
+        if arg == '-v':
+            testme_verbose = 1
+
 
 def main():
     parse_argv()
+    print_verbose("[TESTME] Running directory : " + testme_running_dir)
+    parse_config()
 
 main()

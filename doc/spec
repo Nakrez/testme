@@ -21,7 +21,7 @@ test_me [dir = .] [opts]
 
 - Options:
 
-    * -c categorie [...]
+    * -c category_name [...]
         Specify specific category(ies) to run
     * -a --all
         Run all categories (default option)
@@ -41,4 +41,3 @@ test_me [dir = .] [opts]
     - TESTME_CATEGORY_[OUT][IN][ERR]DIR
         The out/in/err directory of the category (only available when specifying
                                                   a category)
-    
