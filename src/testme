@@ -13,6 +13,7 @@ testme_to_run = {}
 def run_tests():
     for category in testme_to_run:
         print "[TESTME] Running tests in", category
+        dir_to_run = testme_to_run[category]['input'] ? 'input_dir' : stdin_dir
 
 def die_on_error(msg):
     sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
