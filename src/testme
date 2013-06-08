@@ -19,6 +19,9 @@ def update_env(cat):
     testme_env['TESTME_CATEGORY'] = cat
     testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
 
+def run(test_file):
+    return True
+
 def run_tests():
     total_test = 0
     total_pass = 0
@@ -34,7 +37,10 @@ def run_tests():
             for files in os.listdir(testme_to_run[category][dir_to_run]):
                 if files.endswith(testme_to_run[category][ext]):
                     total_test += 1
-                    print files
+                    cat_test += 1
+                    if run(files):
+                        cat_pass += 1
+                        total_pass += 1
 
         except OSError:
             sys.stderr.write("[TESTME][ERROR] Fatal error with directory : " +
