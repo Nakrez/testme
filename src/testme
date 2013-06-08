@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import ConfigParser
+import filecmp
 
 testme_version = "0.1"
 testme_running_dir = os.getcwd()
@@ -30,27 +31,54 @@ def update_env(cat):
     testme_env['TESTME_CATEGORY'] = cat
     testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
 
+def change_extension(change_file, ext):
+    path = os.path.splitext(change_file)
+    return path[0] + "." + ext
+
 def run(category, test_file):
     global testme_env
 
     command = ""
+    ret_value = True
+    full_path = os.path.join(testme_to_run[category]['input_dir'], test_file)
 
     if testme_to_run[category]['input']:
-        testme_env['TESTME_RUNNING_INPUT'] = os.path.join(testme_to_run[category]['input_dir'], test_file)
+        testme_env['TESTME_RUNNING_INPUT'] = full_path
 
     if testme_to_run[category]['stdin'] and testme_to_run[category]['input']:
-        stdin = os.path.splitext(test_file)
-        stdin = stdin[0] + "." + testme_to_run[category]['stdin_ext']
-        stdin = os.path.join(testme_to_run[category]['stdin_dir'], stdin)
+        stdin = change_extension(full_path, testme_to_run[category]['stdin_ext'])
         command = "cat " + stdin + " | "
     elif testme_to_run[category]['stdin']:
         command = "cat " + os.path.join(testme_env['TESTME_CATEGORY_DIR'], test_file) + " | "
 
     command += parse_string(testme_to_run[category]['cmd_line'])
 
-    ret_value = os.system(command)
+    if testme_to_run[category]['stdout']:
+        command += " > /tmp/testme.stdout"
+        stdout = change_extension(test_file, testme_to_run[category]['stdout_ext'])
+        stdout = os.path.join(testme_to_run[category]['stdout_dir'], stdout)
+    if testme_to_run[category]['stderr']:
+        command += " > /tmp/testme.stderr"
+        stderr = change_extension(test_file, testme_to_run[category]['stderr_ext'])
+        stderr = os.path.join(testme_to_run[category]['stderr_dir'], stderr)
 
-    return True
+    command_exit = os.system(command)
+
+    if testme_to_run[category]['stdout'] and os.path.exists(stdout):
+        ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
+    if testme_to_run[category]['stderr'] and os.path.exists(stderr):
+        ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
+
+    if testme_to_run[category]['check_code']:
+        ret_value &= testme_to_run[category]['error_code'] == command_exit
+
+    return ret_value
+
+def print_result(test_result, category, file_name):
+    if test_result and testme_to_run[category]['display_ok_tests']:
+        print "[TESTME] Test :", file_name, "passed"
+    elif not test_result and testme_to_run[category]['display_ko_tests']:
+        print "[TESTME] Test :", file_name, "failed"
 
 def run_tests():
     total_test = 0
@@ -68,9 +96,11 @@ def run_tests():
                 if files.endswith(testme_to_run[category][ext]):
                     total_test += 1
                     cat_test += 1
-                    if run(category, files):
+                    test_result = run(category, files)
+                    if test_result:
                         cat_pass += 1
                         total_pass += 1
+                    print_result(test_result, category, files)
 
             if testme_to_run[category]['display_summary'] == 1:
                 print "[TESTME] Category : '" + category + "' :", cat_pass, "/", cat_test
@@ -103,7 +133,7 @@ def default_category(cat_name):
             'check_code' : 0,
             'error_code' : 0,
             'display_ok_tests' : 1,
-            'diplay_ko_tests' : 1,
+            'display_ko_tests' : 1,
             'display_summary' : 1}
 
 def get_bool(config, dico, section, value):
