@@ -1,0 +1,175 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Baptiste COVOLATO" />
+  <meta name="date" content="2013-06-08" />
+  <title>TestMe Documentation</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="pandoc.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">TestMe Documentation</h1>
+<h2 class="author">Baptiste COVOLATO</h2>
+<h3 class="date">June 08, 2013</h3>
+</div>
+<div id="TOC">
+<ul>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#configuration-file">Configuration file</a><ul>
+<li><a href="#category">Category</a><ul>
+<li><a href="#input-options">input options</a></li>
+<li><a href="#stdin-options">stdin options</a></li>
+<li><a href="#stdout-options">stdout options</a></li>
+<li><a href="#stderr-options">stderr options</a></li>
+<li><a href="#command-line-invocation">Command line invocation</a></li>
+<li><a href="#error-code-check">Error code check</a></li>
+<li><a href="#display-options">Display options</a></li>
+</ul></li>
+<li><a href="#variables">Variables</a></li>
+<li><a href="#example">Example</a></li>
+</ul></li>
+</ul>
+</div>
+<h1 id="usage"><a href="#usage">Usage</a></h1>
+<p>test_me [directory][opts]</p>
+<p>If you don’t specify any directory to run. Then <code>TestMe</code> will try to run in the current directory</p>
+<ul>
+<li><p>Options:</p>
+<ul>
+<li><p>-c category_name […]</p>
+Specify one or more category(ies) to run (NOT AVAILABLE YET)</li>
+<li><p>-a --all</p>
+Run all categories (default option) (NOT AVAILABLE YET)</li>
+<li><p>--config path</p>
+Specify a configuration file to use (the default one is dir/testme.conf) (NOT AVAILABLE YET)</li>
+<li><p>-v</p>
+<p>Verbose mode : <code>TestMe</code> will print some extra information while running</p></li>
+</ul></li>
+</ul>
+<h1 id="configuration-file"><a href="#configuration-file">Configuration file</a></h1>
+<p>When <code>TestMe</code> is running in a directory it will need a configuration file named “testme.conf”. This configuration file describes all categories that <code>TestMe</code> has to test and how to test each one of them.</p>
+<h2 id="category"><a href="#category">Category</a></h2>
+<p>To specify a category you declared it in the configuration file between []. For example category <code>info</code> will be declared as <code>[info]</code>.</p>
+<p>You can have extra options to specify how <code>TestMe</code> has to run the category. All options that have a default value can not be unspecified if the default value is the one you desired.</p>
+<p>WARNING : All files (input, stdin, stdout, stderr) related to a single test must have the same base name (with different extension). If you do not do as specified <code>TestMe</code> may fail to properly execute your tests. For example an input file name <code>test.py</code> must have <code>test.in</code>, <code>test.out</code>, <code>test.err</code> files (respectively stdin, stdout, stderr). If they are activated. Extensions can also be modified.</p>
+<h3 id="input-options"><a href="#input-options">input options</a></h3>
+<p>These options allow you to run over input file for tests in the specified category.</p>
+<p>When enabled <code>TestMe</code> will iterate over the <code>input_dir</code> and run for every file the command line and test the outputs. (See <code>Variables</code> section to see how to indicate input file to the command_line).</p>
+<p>WARNING: All your input files must have the same extension and located in the same directory.</p>
+<ul>
+<li><p><code>input (default = off)</code></p>
+<p>Enable the input file process.</p></li>
+<li><p><code>input_dir (default = ${TESTME_CATEGORY_DIR}/input)</code></p>
+<p>The directory where all input files are located.</p></li>
+<li><p><code>input_ext (default = inp)</code></p>
+<p>The extension that all your input files have.</p></li>
+</ul>
+<h3 id="stdin-options"><a href="#stdin-options">stdin options</a></h3>
+<p>These options allow you put input content on the standard input of the command line</p>
+<p>WARNING: All your stdin files must have the same extension and located in the same directory.</p>
+<ul>
+<li><p><code>stdin (default = off)</code></p>
+<p>Enable the standard input files</p></li>
+<li><p><code>stdin_dir (default = ${TESTME_CATEGORY_DIR}/stdin)</code></p>
+<p>The directory where all references output are located. These output must have the same base name than the input test file.</p></li>
+<li><p><code>stdin_ext (default = in)</code></p>
+<p>The extension that all your stdin files have.</p></li>
+</ul>
+<h3 id="stdout-options"><a href="#stdout-options">stdout options</a></h3>
+<p>These options allow you to test the output of your tests in the specified category.</p>
+<p>WARNING: All your output references files must have the same extension and located in the same directory.</p>
+<ul>
+<li><p><code>stdout (default = off)</code></p>
+<p>Enable the check between the standard output of the test and a reference output</p></li>
+<li><p><code>stdout_dir (default = ${TESTME_CATEGORY_DIR}/stdout)</code></p>
+<p>The directory where all references output are located. These output must have the same base name than the input test file.</p></li>
+<li><p><code>stdout_ext (default = out)</code></p>
+<p>The extension that all your output references have.</p></li>
+</ul>
+<h3 id="stderr-options"><a href="#stderr-options">stderr options</a></h3>
+<p>WARNING: All your output error references files must have the same extension and located in the same directory.</p>
+<ul>
+<li><p><code>stderr (default = off)</code></p>
+<p>Enable the check between the standard error of the test and a reference error</p></li>
+<li><p><code>stderr_dir (default = ${TESTME_CATEGORY_DIR}/stderr)</code></p>
+<p>The directory where all references error are located. These output must have the same base name than the input test file.</p></li>
+<li><p><code>stderr_ext (default = err)</code></p>
+<p>The extension that all your error output references have.</p></li>
+</ul>
+<h3 id="command-line-invocation"><a href="#command-line-invocation">Command line invocation</a></h3>
+<p>This variable is mandatory and does not have any default value</p>
+<ul>
+<li><p><code>cmd_line</code></p>
+<p>Specify how to invoke a test. You have access to the special variable <code>TESTME_RUNNING_INPUT</code> (See <code>Variables</code> section for more infos) The command must be expressed in shell like style. If you have many binary invocation separated by <code>;</code> or <code>|</code> or <code>&amp;&amp;</code> or <code>||</code> only the last one will be tested.</p></li>
+</ul>
+<h3 id="error-code-check"><a href="#error-code-check">Error code check</a></h3>
+<p>These variables allow you to enable and specify a return code that the command line must produce.</p>
+<ul>
+<li><p><code>check_code (default = off)</code></p>
+<p>Enable the check of return code</p></li>
+<li><p><code>error_code (default = 0)</code></p>
+<p>The return code that command line must produce.</p></li>
+</ul>
+<h3 id="display-options"><a href="#display-options">Display options</a></h3>
+<p>These options allow you to customize output produced by <code>TestMe</code> will running your tests.</p>
+<ul>
+<li><p><code>display_ok_tests (default = true)</code></p>
+<p><code>TestMe</code> will display every test that runs correctly</p></li>
+<li><p><code>diplay_ko_tests (default = true)</code></p>
+<p><code>TestMe</code> will display every test that fails</p></li>
+<li><p><code>display_summary (default = true)</code></p>
+<p><code>TestMe</code> will display a summary of all test run/failed/passed</p></li>
+</ul>
+<h2 id="variables"><a href="#variables">Variables</a></h2>
+<p>With <code>TestMe</code> you can use few variables to get specific directories, the current processed input, …</p>
+<p>Those variables are described above.</p>
+<p>Variables in configuration file must be surrounded by ${}. For example variable <code>TESTME_TESTDIR</code> in configuration file must appear as <code>${TESTME_TESTDIR}</code></p>
+<ul>
+<li><p><code>TESTME_TESTDIR</code></p>
+The root directory where tests are located</li>
+<li><p><code>TESTME_CATEGORY</code></p>
+The name of the current category (only available when specifying a category)</li>
+<li><p><code>TESTME_CATEGORY_DIR</code></p>
+The root directory of the category (only available when specifying a category)</li>
+<li><p><code>TESTME_RUNNING_INPUT</code></p>
+<p>This variable will take the value of the input value read.</p>
+<p>This variable is only available with <code>cmd_line</code> option because this is the only place where you may need the current input treated for example to pass it a command line of a binary (See example configuration file section <code>python_input</code>)</p></li>
+</ul>
+<h2 id="example"><a href="#example">Example</a></h2>
+<p>The configuration file above show two categories.</p>
+<p>The first one “python2” passed input in the standard input of script.py and test the resulted standard output and the error code</p>
+<p>The second one “python_input” run different python scripts and compare there output</p>
+<pre><code>[python2]
+
+stdout = true
+stdin = true
+stdout_dir = ${TESTME_CATEGORY_DIR}/pyout
+stdin_dir = ${TESTME_CATEGORY_DIR}/pyin
+cmd_line = /usr/bin/python2 ${TESTME_CATEGORY_DIR}/script.py
+check_code = true
+error_code = 0
+display_ok_tests = true
+diplay_ko_tests = true
+display_summary = true
+
+[python_input]
+
+stdout = true
+input = true
+stdout_dir = ${TESTME_CATEGORY_DIR}/pyout
+input_dir = ${TESTME_CATEGORY_DIR}/pyinput
+input_ext = py
+cmd_line = /usr/bin/python2 ${TESTME_RUNNING_INPUT}
+display_ok_tests = true
+diplay_ko_tests = true
+display_summary = true</code></pre>
+<div id="footer">
+  &copy; 2013 <a href="https://github.com/Nakrez">Baptiste COVOLATO</a>
+</div>
+
+</body>
+</html>
