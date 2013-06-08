@@ -20,7 +20,12 @@ def update_env(cat):
     testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
 
 def run_tests():
+    total_test = 0
+    total_pass = 0
     for category in testme_to_run:
+        cat_test = 0
+        cat_pass = 0
+
         print "[TESTME] Running tests in", category
         dir_to_run = 'input_dir' if testme_to_run[category]['input'] else 'stdin_dir'
         ext = 'input_ext' if testme_to_run[category]['input'] else 'stdin_ext'
@@ -28,6 +33,7 @@ def run_tests():
         try:
             for files in os.listdir(testme_to_run[category][dir_to_run]):
                 if files.endswith(testme_to_run[category][ext]):
+                    total_test += 1
                     print files
 
         except OSError:
