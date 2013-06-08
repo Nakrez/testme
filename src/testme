@@ -12,6 +12,17 @@ testme_verbose = 0
 testme_to_run = {}
 testme_env = {}
 
+def parse_string(string):
+    m = re.search('\$\{(.*)\}', string)
+
+    if m == None:
+        return string
+
+    if testme_env.get(m.group(1), None) == None:
+        return string
+
+    return re.sub('\$\{(.*)\}', testme_env[m.group(1)], string)
+
 def update_env(cat):
     global testme_env
 
@@ -19,7 +30,26 @@ def update_env(cat):
     testme_env['TESTME_CATEGORY'] = cat
     testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
 
-def run(test_file):
+def run(category, test_file):
+    global testme_env
+
+    command = ""
+
+    if testme_to_run[category]['input']:
+        testme_env['TESTME_RUNNING_INPUT'] = os.path.join(testme_to_run[category]['input_dir'], test_file)
+
+    if testme_to_run[category]['stdin'] and testme_to_run[category]['input']:
+        stdin = os.path.splitext(test_file)
+        stdin = stdin[0] + "." + testme_to_run[category]['stdin_ext']
+        stdin = os.path.join(testme_to_run[category]['stdin_dir'], stdin)
+        command = "cat " + stdin + " | "
+    elif testme_to_run[category]['stdin']:
+        command = "cat " + os.path.join(testme_env['TESTME_CATEGORY_DIR'], test_file) + " | "
+
+    command += parse_string(testme_to_run[category]['cmd_line'])
+
+    ret_value = os.system(command)
+
     return True
 
 def run_tests():
@@ -29,7 +59,7 @@ def run_tests():
         cat_test = 0
         cat_pass = 0
 
-        print "[TESTME] Running tests in", category
+        print "\n[TESTME] Running tests in", category
         dir_to_run = 'input_dir' if testme_to_run[category]['input'] else 'stdin_dir'
         ext = 'input_ext' if testme_to_run[category]['input'] else 'stdin_ext'
 
@@ -38,14 +68,19 @@ def run_tests():
                 if files.endswith(testme_to_run[category][ext]):
                     total_test += 1
                     cat_test += 1
-                    if run(files):
+                    if run(category, files):
                         cat_pass += 1
                         total_pass += 1
+
+            if testme_to_run[category]['display_summary'] == 1:
+                print "[TESTME] Category : '" + category + "' :", cat_pass, "/", cat_test
 
         except OSError:
             sys.stderr.write("[TESTME][ERROR] Fatal error with directory : " +
                              testme_to_run[category][dir_to_run] + "\n")
 
+
+    print "\n[TESTME] Final result :", total_pass, "/", total_test
 
 def die_on_error(msg):
     sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
@@ -79,14 +114,6 @@ def get_bool(config, dico, section, value):
     except:
         die_on_error(value + " in section '" + section + "' is not a boolean")
 
-def parse_string(string):
-    m = re.match('\$\{(.*)\}', string)
-
-    if m == None:
-        return string
-
-    return re.sub('\$\{(.*)\}', testme_env[m.group(1)], string)
-
 def get_string(config, dico, section, value):
     try:
         txt = config.get(section, value)
@@ -94,8 +121,8 @@ def get_string(config, dico, section, value):
         return
     except ConfigParser.NoOptionError:
         return
-    except:
-        die_on_error(value + " in section '" + section + "' is not a string")
+    # except:
+    #     die_on_error(value + " in section '" + section + "' is not a string")
 
 def get_int(config, dico, section, value):
     try:
