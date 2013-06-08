@@ -40,16 +40,17 @@ def run(category, test_file):
 
     command = ""
     ret_value = True
-    full_path = os.path.join(testme_to_run[category]['input_dir'], test_file)
 
     if testme_to_run[category]['input']:
+        full_path = os.path.join(testme_to_run[category]['input_dir'], test_file)
         testme_env['TESTME_RUNNING_INPUT'] = full_path
 
     if testme_to_run[category]['stdin'] and testme_to_run[category]['input']:
         stdin = change_extension(full_path, testme_to_run[category]['stdin_ext'])
         command = "cat " + stdin + " | "
     elif testme_to_run[category]['stdin']:
-        command = "cat " + os.path.join(testme_env['TESTME_CATEGORY_DIR'], test_file) + " | "
+        full_path = os.path.join(testme_to_run[category]['stdin_dir'], test_file)
+        command = "cat " + full_path + " | "
 
     command += parse_string(testme_to_run[category]['cmd_line'])
 
