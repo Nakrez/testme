@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 import ConfigParser
 
 testme_version = "0.1"
@@ -9,11 +10,30 @@ testme_running_dir = os.getcwd()
 testme_config_name = "testme.conf"
 testme_verbose = 0
 testme_to_run = {}
+testme_env = {}
+
+def update_env(cat):
+    global testme_env
+
+    testme_env['TESTME_TESTDIR'] = testme_running_dir
+    testme_env['TESTME_CATEGORY'] = cat
+    testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
 
 def run_tests():
     for category in testme_to_run:
         print "[TESTME] Running tests in", category
-        dir_to_run = testme_to_run[category]['input'] ? 'input_dir' : stdin_dir
+        dir_to_run = 'input_dir' if testme_to_run[category]['input'] else 'stdin_dir'
+        ext = 'input_ext' if testme_to_run[category]['input'] else 'stdin_ext'
+
+        try:
+            for files in os.listdir(testme_to_run[category][dir_to_run]):
+                if files.endswith(testme_to_run[category][ext]):
+                    print files
+
+        except OSError:
+            sys.stderr.write("[TESTME][ERROR] Fatal error with directory : " +
+                             testme_to_run[category][dir_to_run] + "\n")
+
 
 def die_on_error(msg):
     sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
@@ -24,10 +44,10 @@ def default_category(cat_name):
             'stdin' : 0, # Stdin test
             'stderr' : 0, # Stderr test
             'input' : 0, # Input test
-            'input_dir' : testme_running_dir + "/" + cat_name + "/input",
-            'stdout_dir' : testme_running_dir + "/" + cat_name + "/stdout",
-            'stdin_dir' : testme_running_dir + "/" + cat_name + "/stdin",
-            'stderr_dir' : testme_running_dir + "/" + cat_name + "/stderr",
+            'input_dir' : os.path.join(testme_running_dir, cat_name, "input"),
+            'stdout_dir' : os.path.join(testme_running_dir, cat_name, "stdout"),
+            'stdin_dir' : os.path.join(testme_running_dir, cat_name, "stdin"),
+            'stderr_dir' : os.path.join(testme_running_dir, cat_name, "stderr"),
             'input_ext' : 'inp',
             'stdout_ext' : 'out',
             'stdin_ext' : 'in',
@@ -48,7 +68,12 @@ def get_bool(config, dico, section, value):
         die_on_error(value + " in section '" + section + "' is not a boolean")
 
 def parse_string(string):
-    return string
+    m = re.match('\$\{(.*)\}', string)
+
+    if m == None:
+        return string
+
+    return re.sub('\$\{(.*)\}', testme_env[m.group(1)], string)
 
 def get_string(config, dico, section, value):
     try:
@@ -71,7 +96,7 @@ def get_int(config, dico, section, value):
 def parse_config():
     global testme_to_run
 
-    config_full_path = testme_running_dir + "/" + testme_config_name
+    config_full_path = os.path.join(testme_running_dir, testme_config_name)
     print_verbose("[TESTME] Parsing configuration file : " + config_full_path)
 
     config_file = ConfigParser.RawConfigParser()
@@ -79,13 +104,16 @@ def parse_config():
 
     for section in config_file.sections():
         testme_to_run[section] = default_category(section)
+        update_env(section)
 
         get_bool(config_file, testme_to_run, section, 'stdout')
         get_bool(config_file, testme_to_run, section, 'stdin')
         get_bool(config_file, testme_to_run, section, 'stderr')
+        get_bool(config_file, testme_to_run, section, 'input')
         get_string(config_file, testme_to_run, section, 'stdout_dir')
         get_string(config_file, testme_to_run, section, 'stdin_dir')
         get_string(config_file, testme_to_run, section, 'stderr_dir')
+        get_string(config_file, testme_to_run, section, 'input_dir')
         get_string(config_file, testme_to_run, section, 'cmd_line')
         get_string(config_file, testme_to_run, section, 'input_ext')
         get_string(config_file, testme_to_run, section, 'stdin_ext')
@@ -125,7 +153,7 @@ def parse_argv():
         return # No option to parse
 
     if sys.argv[1][0] != '-': # Running directory specified
-        testme_running_dir += "/" + sys.argv[1]
+        testme_running_dir = os.path.join(testme_running_dir, sys.argv[1])
         argc = 2
 
     for arg in sys.argv[argc:]:
