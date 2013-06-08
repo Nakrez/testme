@@ -77,9 +77,9 @@ def run(category, test_file):
 
 def print_result(test_result, category, file_name):
     if test_result and testme_to_run[category]['display_ok_tests']:
-        print "[TESTME] Test :", file_name, "passed"
+        print "\033[32m[TESTME] Test :", file_name, "passed\033[0m"
     elif not test_result and testme_to_run[category]['display_ko_tests']:
-        print "[TESTME] Test :", file_name, "failed"
+        print "\033[91m[TESTME] Test :", file_name, "failed\033[0m"
 
 def run_tests():
     total_test = 0
