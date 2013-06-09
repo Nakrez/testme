@@ -6,5 +6,3 @@
     |_|\___||___/\__|_|  |_|\___|
 
 - Compare output and error with an other binary output and error
-- Add -c option
-- Add some warning when verbose mode is enabled
