@@ -25,11 +25,11 @@ import os
 import re
 import ConfigParser
 import filecmp
+import argparse
 
 testme_version = "0.1"
-testme_running_dir = os.getcwd()
 testme_config_name = "testme.conf"
-testme_verbose = 0
+testme_args = {}
 testme_to_run = {}
 testme_env = {}
 
@@ -47,9 +47,9 @@ def parse_string(string):
 def update_env(cat):
     global testme_env
 
-    testme_env['TESTME_TESTDIR'] = testme_running_dir
+    testme_env['TESTME_TESTDIR'] = testme_args['dir']
     testme_env['TESTME_CATEGORY'] = cat
-    testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_running_dir, cat)
+    testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_args['dir'], cat)
 
 def change_extension(change_file, ext):
     path = os.path.splitext(change_file)
@@ -101,6 +101,12 @@ def print_result(test_result, category, file_name):
     elif not test_result and testme_to_run[category]['display_ko_tests']:
         print "\033[91m[TESTME] Test :", file_name, "failed\033[0m"
 
+def is_runnable_category(cat_name):
+    if testme_args.get('category', None) != None:
+        return testme_args['category'].count(cat_name) > 0
+
+    return True
+
 def run_tests():
     total_test = 0
     total_pass = 0
@@ -108,6 +114,8 @@ def run_tests():
         cat_test = 0
         cat_pass = 0
 
+        if not is_runnable_category(category):
+            continue
         print "\n[TESTME] Running tests in", category
         dir_to_run = 'input_dir' if testme_to_run[category]['input'] else 'stdin_dir'
         ext = 'input_ext' if testme_to_run[category]['input'] else 'stdin_ext'
@@ -142,10 +150,10 @@ def default_category(cat_name):
             'stdin' : 0, # Stdin test
             'stderr' : 0, # Stderr test
             'input' : 0, # Input test
-            'input_dir' : os.path.join(testme_running_dir, cat_name, "input"),
-            'stdout_dir' : os.path.join(testme_running_dir, cat_name, "stdout"),
-            'stdin_dir' : os.path.join(testme_running_dir, cat_name, "stdin"),
-            'stderr_dir' : os.path.join(testme_running_dir, cat_name, "stderr"),
+            'input_dir' : os.path.join(testme_args['dir'], cat_name, "input"),
+            'stdout_dir' : os.path.join(testme_args['dir'], cat_name, "stdout"),
+            'stdin_dir' : os.path.join(testme_args['dir'], cat_name, "stdin"),
+            'stderr_dir' : os.path.join(testme_args['dir'], cat_name, "stderr"),
             'input_ext' : 'inp',
             'stdout_ext' : 'out',
             'stdin_ext' : 'in',
@@ -184,7 +192,7 @@ def get_int(config, dico, section, value):
 def parse_config():
     global testme_to_run
 
-    config_full_path = os.path.join(testme_running_dir, testme_config_name)
+    config_full_path = os.path.join(testme_args['dir'], testme_config_name)
     print_verbose("[TESTME] Parsing configuration file : " + config_full_path)
 
     config_file = ConfigParser.RawConfigParser()
@@ -215,7 +223,7 @@ def parse_config():
         get_bool(config_file, testme_to_run, section, 'display_summary')
 
 def print_verbose(msg):
-    if testme_verbose:
+    if testme_args.get('verbose', None):
         print msg
 
 def testme_usage():
@@ -236,27 +244,30 @@ def testme_usage():
     print "\t\tDisplay the help"
 
 def parse_argv():
-    global testme_running_dir, testme_verbose
+    global testme_running_dir, testme_verbose, testme_args
     argc = 1
 
     if len (sys.argv) == 1:
         return # No option to parse
 
-    if sys.argv[1][0] != '-': # Running directory specified
-        testme_running_dir = os.path.join(testme_running_dir, sys.argv[1])
-        argc = 2
+    parser = argparse.ArgumentParser(description='TestMe ' + testme_version
+                                     + ' by Baptiste COVOLATO')
 
-    for arg in sys.argv[argc:]:
-        if arg == '-v':
-            testme_verbose = 1
-        if arg == '-h' or arg == '--help':
-            testme_usage()
-            exit(0)
-
+    parser.add_argument('--dir', action="store",
+                        help='The directory where you want to run testme')
+    parser.add_argument('-v', '--verbose', action="store_true",
+                        help='TestMe will display extra informations')
+    parser.add_argument('-c', '--category', nargs='+', action="store",
+                        help='Select specific categories to run')
+    testme_args = vars(parser.parse_args())
 
 def main():
     parse_argv()
-    print_verbose("[TESTME] Running directory : " + testme_running_dir)
+
+    if testme_args.get('dir', None) == None:
+        testme_args['dir'] = os.getcwd()
+
+    print_verbose("[TESTME] Running directory : " + testme_args['dir'])
     parse_config()
     run_tests()
 
