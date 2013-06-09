@@ -96,9 +96,14 @@ def run(category, test_file):
     return ret_value
 
 def print_result(test_result, category, file_name):
-    if test_result and testme_to_run[category]['display_ok_tests']:
+    if (test_result and (testme_to_run[category]['display_ok_tests']
+                        or testme_args.get('full_display', False))
+                   and not testme_args.get('extra_light_display', False)):
         print "\033[32m[TESTME] Test :", file_name, "passed\033[0m"
-    elif not test_result and testme_to_run[category]['display_ko_tests']:
+    elif (not test_result and (testme_to_run[category]['display_ko_tests']
+                               or testme_args.get('full_display', False)
+                               or testme_args.get('light_display', False))
+                          and not testme_args.get('extra_light_display', False)):
         print "\033[91m[TESTME] Test :", file_name, "failed\033[0m"
 
 def is_runnable_category(cat_name):
@@ -226,23 +231,6 @@ def print_verbose(msg):
     if testme_args.get('verbose', None):
         print msg
 
-def testme_usage():
-    print "TestMe version", testme_version, "by Baptiste COVOLATO"
-    print
-    print sys.argv[0], "[dir=.]", "[opts]"
-    print
-    print "* Options:"
-    print "\t-c --category category_name [...]"
-    print "\t\tSpecify category(ies) to test"
-    print "\t-a --all"
-    print "\t\tRun all tests (default option)"
-    print "\t--config path"
-    print "\t\tSpecify configuration file"
-    print "\t-v --verbose"
-    print "\t\tActivate verbose mode"
-    print "\t-h --help"
-    print "\t\tDisplay the help"
-
 def parse_argv():
     global testme_running_dir, testme_verbose, testme_args
     argc = 1
@@ -259,6 +247,13 @@ def parse_argv():
                         help='TestMe will display extra informations')
     parser.add_argument('-c', '--category', nargs='+', action="store",
                         help='Select specific categories to run')
+    parser.add_argument('-x', '--extra-light-display', action="store_true",
+                        help='Only print summary of each run category')
+    parser.add_argument('-f', '--full-display', action="store_true",
+                        help='Print all tests result')
+    parser.add_argument('-l', '--light-display', action="store_true",
+                        help='Print only failed tests')
+
     testme_args = vars(parser.parse_args())
 
 def main():
