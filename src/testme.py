@@ -219,7 +219,7 @@ def print_verbose(msg):
         print msg
 
 def testme_usage():
-    print "TestMe version", testme_version
+    print "TestMe version", testme_version, "by Baptiste COVOLATO"
     print
     print sys.argv[0], "[dir=.]", "[opts]"
     print
@@ -232,6 +232,8 @@ def testme_usage():
     print "\t\tSpecify configuration file"
     print "\t-v --verbose"
     print "\t\tActivate verbose mode"
+    print "\t-h --help"
+    print "\t\tDisplay the help"
 
 def parse_argv():
     global testme_running_dir, testme_verbose
@@ -247,6 +249,10 @@ def parse_argv():
     for arg in sys.argv[argc:]:
         if arg == '-v':
             testme_verbose = 1
+        if arg == '-h' or arg == '--help':
+            testme_usage()
+            exit(0)
+
 
 def main():
     parse_argv()
