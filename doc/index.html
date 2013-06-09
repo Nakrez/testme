@@ -35,19 +35,25 @@
 </ul>
 </div>
 <h1 id="usage"><a href="#usage">Usage</a></h1>
-<p>test_me [directory][opts]</p>
-<p>If you don’t specify any directory to run. Then <code>TestMe</code> will try to run in the current directory</p>
+<p>testme.py [-h][--dir DIR] [-v][-c CATEGORY [CATEGORY ...]] [-x][-f] [-l]</p>
+<p>If you don’t specify any directory to run. Then <code>TestMe</code> will try to run in the current directory o-h, –help show this help message and exit –dir DIR The directory where you want to run testme -v, –verbose TestMe will display extra informations -c CATEGORY [CATEGORY …], –category CATEGORY [CATEGORY …] Select specific categories to run -x, –extra-light-display Only print summary of each run category -f, –full-display Print all tests result -l, –light-display Print only failed tests</p>
 <ul>
 <li><p>Options:</p>
 <ul>
-<li><p>-c category_name […]</p>
-Specify one or more category(ies) to run (NOT AVAILABLE YET)</li>
-<li><p>-a --all</p>
-Run all categories (default option) (NOT AVAILABLE YET)</li>
-<li><p>--config path</p>
-Specify a configuration file to use (the default one is dir/testme.conf) (NOT AVAILABLE YET)</li>
-<li><p>-v</p>
-<p>Verbose mode : <code>TestMe</code> will print some extra information while running</p></li>
+<li><p>-h --help</p>
+Show the help message and exit</li>
+<li><p>--dir directory</p>
+Specify a directory where <code>TestMe</code> has to run</li>
+<li><p>-v --verbose</p>
+Verbose mode : <code>TestMe</code> will print some extra information while running</li>
+<li><p>-c --category CATEGORY [CATEGORY …]</p>
+Run only the specified categories</li>
+<li><p>-x --extra-light-display</p>
+Only display summary of each categories</li>
+<li><p>-f --full-display</p>
+Display all run tests</li>
+<li><p>-l --light-display</p>
+<p>Only display tests that failed</p></li>
 </ul></li>
 </ul>
 <h1 id="configuration-file"><a href="#configuration-file">Configuration file</a></h1>

@@ -5,26 +5,43 @@
 Usage
 =====
 
-test_me [directory] [opts]
+testme.py [-h] [--dir DIR] [-v] [-c CATEGORY [CATEGORY ...]] [-x] [-f] [-l]
 
 If you don't specify any directory to run. Then `TestMe` will try to run in the
 current directory
+o-h, --help            show this help message and exit
+  --dir DIR             The directory where you want to run testme
+    -v, --verbose         TestMe will display extra informations
+      -c CATEGORY [CATEGORY ...], --category CATEGORY [CATEGORY ...]
+                              Select specific categories to run
+                                -x, --extra-light-display
+                                                        Only print summary of each run category
+                                                          -f, --full-display    Print all tests result
+                                                            -l, --light-display   Print only failed tests
 
 - Options:
 
-    * -c category_name [...]
+    * -h \--help
 
-        Specify one or more category(ies) to run (NOT AVAILABLE YET)
-    * -a \--all
+        Show the help message and exit
+    * \--dir directory
 
-        Run all categories (default option) (NOT AVAILABLE YET)
-    * \--config path
-
-        Specify a configuration file to use (the default one is dir/testme.conf)
-        (NOT AVAILABLE YET)
-    * -v
+        Specify a directory where `TestMe` has to run
+    * -v \--verbose
 
         Verbose mode : `TestMe` will print some extra information while running
+    * -c \--category CATEGORY [CATEGORY ...]
+
+        Run only the specified categories
+    * -x \--extra-light-display
+
+        Only display summary of each categories
+    * -f \--full-display
+
+        Display all run tests
+    * -l \--light-display
+
+        Only display tests that failed
 
 Configuration file
 ==================
