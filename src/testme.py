@@ -55,6 +55,10 @@ def change_extension(change_file, ext):
     path = os.path.splitext(change_file)
     return path[0] + "." + ext
 
+def print_verbose(msg):
+    if testme_args.get('verbose', None):
+        print msg
+
 def run(category, test_file):
     global testme_env
 
@@ -85,10 +89,16 @@ def run(category, test_file):
 
     command_exit = os.WEXITSTATUS(os.system(command))
 
-    if testme_to_run[category]['stdout'] and os.path.exists(stdout):
-        ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
-    if testme_to_run[category]['stderr'] and os.path.exists(stderr):
-        ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
+    if testme_to_run[category]['stdout']:
+        if os.path.exists(stdout):
+            ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
+        else:
+            print_verbose("\033[33m[TESTME] " + stdout + " not present stdout ignored\033[0m")
+    if testme_to_run[category]['stderr']:
+        if os.path.exists(stderr):
+            ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
+        else:
+            print_verbose("\033[33m[TESTME] " + stderr + " not present stderr ignored\033[0m")
 
     if testme_to_run[category]['check_code']:
         ret_value &= testme_to_run[category]['error_code'] == command_exit
@@ -226,10 +236,6 @@ def parse_config():
         get_bool(config_file, testme_to_run, section, 'display_ok_tests')
         get_bool(config_file, testme_to_run, section, 'diplay_ko_tests')
         get_bool(config_file, testme_to_run, section, 'display_summary')
-
-def print_verbose(msg):
-    if testme_args.get('verbose', None):
-        print msg
 
 def parse_argv():
     global testme_running_dir, testme_verbose, testme_args
