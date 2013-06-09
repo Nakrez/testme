@@ -83,7 +83,7 @@ def run(category, test_file):
         stderr = change_extension(test_file, testme_to_run[category]['stderr_ext'])
         stderr = os.path.join(testme_to_run[category]['stderr_dir'], stderr)
 
-    command_exit = os.system(command)
+    command_exit = os.WEXITSTATUS(os.system(command))
 
     if testme_to_run[category]['stdout'] and os.path.exists(stdout):
         ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
@@ -159,7 +159,7 @@ def default_category(cat_name):
 
 def get_bool(config, dico, section, value):
     try:
-        dico[section][value] = config.getboolean(section, value);
+        dico[section][value] = config.getboolean(section, value)
     except ConfigParser.NoOptionError:
         return 0
     except:
@@ -172,16 +172,14 @@ def get_string(config, dico, section, value):
         return
     except ConfigParser.NoOptionError:
         return
-    # except:
-    #     die_on_error(value + " in section '" + section + "' is not a string")
 
 def get_int(config, dico, section, value):
     try:
-        return config.getint(section, value);
+        dico[section][value] = config.getint(section, value)
     except ConfigParser.NoOptionError:
         return 0
     except:
-        die_on_error(value + " in section '" + section + "' is not a boolean")
+        die_on_error(value + " in section '" + section + "' is not an integer")
 
 def parse_config():
     global testme_to_run
