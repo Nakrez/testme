@@ -94,49 +94,59 @@ class TestSuit:
         path = os.path.splitext(change_file)
         return path[0] + "." + ext
 
-    def run_test(self, test_file):
-        global testme_env
+    def stdin_input(self, test_name):
+        stdin_val = ""
 
-        command = ""
+        if self.cat_field_get('stdin'):
+            stdin_file = os.path.join(self.cat_field_get('stdin_dir'), test_name)
+            stdin_file = self.change_extension(stdin_file, self.cat_field_get('stdin_ext'))
+            stdin_fd = open(stdin_file, "r")
+            stdin_val = stdin_fd.read()
+            stdin_fd.close()
+
+        return stdin_val
+
+    def compare_out(self, output, value, ret, test_file):
+
+        if self.cat_field_get(output):
+            filename = self.change_extension(test_file, self.cat_field_get(output + '_ext'))
+            filename = os.path.join(self.cat_field_get(output + '_dir'), filename)
+
+            if os.path.exists(filename):
+                fd = open(filename, "r")
+                file_content = fd.read()
+                fd.close()
+
+                ret = ret and (file_content == value)
+            else:
+                print_verbose("\033[33m[TESTME] " + filename + " not present " + output + " ignored\033[0m")
+
+        return ret
+
+    def run_test(self, test_file):
         ret_value = True
 
         if self.cat_field_get('input'):
-            full_path = os.path.join(self.cat_field_get('input_dir'), test_file)
-            self.environement['TESTME_RUNNING_INPUT'] = full_path
+            input_file = os.path.join(self.cat_field_get('input_dir'), test_file)
+            self.environement['TESTME_RUNNING_INPUT'] = input_file
 
-        if self.cat_field_get('stdin') and self.cat_field_get('input'):
-            stdin = self.change_extension(full_path, self.cat_field_get('stdin_ext'))
-            command = "cat " + stdin + " | "
-        elif self.cat_field_get('stdin'):
-            full_path = os.path.join(self.cat_field_get('stdin_dir'), test_file)
-            command = "cat " + full_path + " | "
+        stdinput = self.stdin_input(test_file)
 
-        command += self.cat_field_get('cmd_line')
+        command = self.cat_field_get('cmd_line')
 
-        if self.cat_field_get('stdout'):
-            command += " > /tmp/testme.stdout"
-            stdout = self.change_extension(test_file, self.cat_field_get('stdout_ext'))
-            stdout = os.path.join(self.cat_field_get('stdout_dir'), stdout)
-        if self.cat_field_get('stderr'):
-            command += " > /tmp/testme.stderr"
-            stderr = change_extension(test_file, self.cat_field_get('stderr_ext'))
-            stderr = os.path.join(self.cat_field_get('stderr_dir'), stderr)
+        process = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   shell=True)
 
-        command_exit = subprocess.call(command, shell=True)
+        stdout, stderr = process.communicate(stdinput.encode('utf-8'))
+        stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
 
-        if self.cat_field_get('stdout'):
-            if os.path.exists(stdout):
-                ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
-            else:
-                print_verbose("\033[33m[TESTME] " + stdout + " not present stdout ignored\033[0m")
-        if self.cat_field_get('stderr'):
-            if os.path.exists(stderr):
-                ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
-            else:
-                print_verbose("\033[33m[TESTME] " + stderr + " not present stderr ignored\033[0m")
+        ret_value = self.compare_out('stdout', stdout, ret_value, test_file)
+        ret_value = self.compare_out('stderr', stderr, ret_value, test_file)
 
         if self.cat_field_get('check_code'):
-            ret_value &= str(command_exit) in self.cat_field_get('error_code')
+            ret_value &= str(process.returncode) in self.cat_field_get('error_code')
 
         return ret_value
 
