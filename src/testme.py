@@ -27,6 +27,10 @@ import configparser
 import filecmp
 import argparse
 
+testme_version = "0.2"
+testme_config_name = "testme.conf"
+testme_args = {}
+
 class TestPrinter:
     def __init__(self):
         self.verbose = False
@@ -42,6 +46,12 @@ class TestPrinter:
 
     def print_error(self, message):
         print("\033[91m" + message + "\033[0m")
+
+    def print_result(self, test_result, file_name):
+        if (test_result):
+            print("\033[32m[TESTME] Test :", file_name, "passed\033[0m")
+        elif (not test_result):
+            print("\033[91m[TESTME] Test :", file_name, "failed\033[0m")
 
 class TestSuit:
     def __init__(self, printer):
@@ -79,19 +89,69 @@ class TestSuit:
 
         return True
 
+    def change_extension(self, change_file, ext):
+        path = os.path.splitext(change_file)
+        return path[0] + "." + ext
+
+    def run_test(self, test_file):
+        global testme_env
+
+        command = ""
+        ret_value = True
+
+        if self.cat_field_get('input'):
+            full_path = os.path.join(self.cat_field_get('input_dir'), test_file)
+            self.environement['TESTME_RUNNING_INPUT'] = full_path
+
+        if self.cat_field_get('stdin') and self.cat_field_get('input'):
+            stdin = self.change_extension(full_path, self.cat_field_get('stdin_ext'))
+            command = "cat " + stdin + " | "
+        elif self.cat_field_get('stdin'):
+            full_path = os.path.join(self.cat_field_get('stdin_dir'), test_file)
+            command = "cat " + full_path + " | "
+
+        command += self.cat_field_get('cmd_line')
+
+        if self.cat_field_get('stdout'):
+            command += " > /tmp/testme.stdout"
+            stdout = self.change_extension(test_file, self.cat_field_get('stdout_ext'))
+            stdout = os.path.join(self.cat_field_get('stdout_dir'), stdout)
+        if self.cat_field_get('stderr'):
+            command += " > /tmp/testme.stderr"
+            stderr = change_extension(test_file, self.cat_field_get('stderr_ext'))
+            stderr = os.path.join(self.cat_field_get('stderr_dir'), stderr)
+
+        command_exit = os.WEXITSTATUS(os.system(command))
+
+        if self.cat_field_get('stdout'):
+            if os.path.exists(stdout):
+                ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
+            else:
+                print_verbose("\033[33m[TESTME] " + stdout + " not present stdout ignored\033[0m")
+        if self.cat_field_get('stderr'):
+            if os.path.exists(stderr):
+                ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
+            else:
+                print_verbose("\033[33m[TESTME] " + stderr + " not present stderr ignored\033[0m")
+
+        if self.cat_field_get('check_code'):
+            ret_value &= str(command_exit) in self.cat_field_get('error_code')
+
+        return ret_value
+
     def run_directory(self):
         try:
             for dir_file in os.listdir(self.cat_field_get(self.running_dir)):
                 if dir_file.endswith(self.cat_field_get(self.ext)):
                     self.total_test += 1
                     self.cat_test += 1
-                    test_result = self.run_test(category, files)
+                    test_result = self.run_test(dir_file)
                     if test_result:
                         self.cat_good += 1
                         self.total_good += 1
-                    self.printer.print_result(test_result, category, files)
+                    self.printer.print_result(test_result, dir_file)
 
-            self.printer.print_summary(self.running_cat, self.total_test,
+            self.printer.print_summary(self.running_cat, self.cat_good,
                                        self.cat_test)
 
         except OSError:
@@ -108,6 +168,8 @@ class TestSuit:
             self.cat_test = 0
             self.cat_good = 0
             self.running_cat = cat
+            self.environement['TESTME_CATEGORY'] = cat
+            self.environement['TESTME_CATEGORY_DIR'] = os.path.join(self.environement['TESTME_TESTDIR'], cat)
 
             if not self.is_runnable():
                 continue
@@ -119,90 +181,6 @@ class TestSuit:
             self.run_directory()
 
         print("\n[TESTME] Final result :", self.total_good, "/", self.total_test)
-
-testme_version = "0.2"
-testme_config_name = "testme.conf"
-testme_args = {}
-testme_to_run = {}
-testme_env = {}
-
-
-def update_env(cat):
-    global testme_env
-
-    testme_env['TESTME_TESTDIR'] = testme_args['dir']
-    testme_env['TESTME_CATEGORY'] = cat
-    testme_env['TESTME_CATEGORY_DIR'] = os.path.join(testme_args['dir'], cat)
-
-def change_extension(change_file, ext):
-    path = os.path.splitext(change_file)
-    return path[0] + "." + ext
-
-def print_verbose(msg):
-    if testme_args.get('verbose', None):
-        print(msg)
-
-def run(category, test_file):
-    global testme_env
-
-    command = ""
-    ret_value = True
-
-    if testme_to_run[category]['input']:
-        full_path = os.path.join(testme_to_run[category]['input_dir'], test_file)
-        testme_env['TESTME_RUNNING_INPUT'] = full_path
-
-    if testme_to_run[category]['stdin'] and testme_to_run[category]['input']:
-        stdin = change_extension(full_path, testme_to_run[category]['stdin_ext'])
-        command = "cat " + stdin + " | "
-    elif testme_to_run[category]['stdin']:
-        full_path = os.path.join(testme_to_run[category]['stdin_dir'], test_file)
-        command = "cat " + full_path + " | "
-
-    command += parse_string(testme_to_run[category]['cmd_line'])
-
-    if testme_to_run[category]['stdout']:
-        command += " > /tmp/testme.stdout"
-        stdout = change_extension(test_file, testme_to_run[category]['stdout_ext'])
-        stdout = os.path.join(testme_to_run[category]['stdout_dir'], stdout)
-    if testme_to_run[category]['stderr']:
-        command += " > /tmp/testme.stderr"
-        stderr = change_extension(test_file, testme_to_run[category]['stderr_ext'])
-        stderr = os.path.join(testme_to_run[category]['stderr_dir'], stderr)
-
-    command_exit = os.WEXITSTATUS(os.system(command))
-
-    if testme_to_run[category]['stdout']:
-        if os.path.exists(stdout):
-            ret_value &= filecmp.cmp("/tmp/testme.stdout", stdout)
-        else:
-            print_verbose("\033[33m[TESTME] " + stdout + " not present stdout ignored\033[0m")
-    if testme_to_run[category]['stderr']:
-        if os.path.exists(stderr):
-            ret_value &= filecmp.cmp("/tmp/testme.stdout", stderr)
-        else:
-            print_verbose("\033[33m[TESTME] " + stderr + " not present stderr ignored\033[0m")
-
-    if testme_to_run[category]['check_code']:
-        ret_value &= str(command_exit) in testme_to_run[category]['error_code']
-
-    return ret_value
-
-def print_result(test_result, category, file_name):
-    if (test_result and (testme_to_run[category]['display_ok_tests']
-                        or testme_args.get('full_display', False))
-                   and not testme_args.get('extra_light_display', False)):
-        print("\033[32m[TESTME] Test :", file_name, "passed\033[0m")
-    elif (not test_result and (testme_to_run[category]['display_ko_tests']
-                               or testme_args.get('full_display', False)
-                               or testme_args.get('light_display', False))
-                          and not testme_args.get('extra_light_display', False)):
-        print("\033[91m[TESTME] Test :", file_name, "failed\033[0m")
-
-
-def die_on_error(msg):
-    sys.stderr.write("[TESTME][ERROR] " + msg + "\n")
-    sys.exit(1)
 
 
 class ConfigBuilder:
@@ -326,6 +304,7 @@ def main():
     config.parse_config()
 
     test_suit = TestSuit(printer)
+    test_suit.environement['TESTME_TESTDIR'] = testme_args['dir']
     test_suit.test_list = config.configuration
     test_suit.run()
 
