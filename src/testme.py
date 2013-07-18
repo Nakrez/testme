@@ -21,6 +21,7 @@
 #SOFTWARE.
 
 import sys
+import subprocess
 import os
 import re
 import configparser
@@ -121,7 +122,7 @@ class TestSuit:
             stderr = change_extension(test_file, self.cat_field_get('stderr_ext'))
             stderr = os.path.join(self.cat_field_get('stderr_dir'), stderr)
 
-        command_exit = os.WEXITSTATUS(os.system(command))
+        command_exit = subprocess.call(command, shell=True)
 
         if self.cat_field_get('stdout'):
             if os.path.exists(stdout):
