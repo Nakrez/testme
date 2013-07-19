@@ -36,7 +36,6 @@ testme_config_name = "testme.conf"
 testme_args = {'threads' : 1}
 
 class ThreadPool:
-
     class _ThreadQueue(Thread):
         def __init__(self, pool, *args, **kwargs):
             super(ThreadPool._ThreadQueue, self).__init__(*args, **kwargs)
@@ -70,6 +69,9 @@ class TestPrinter:
     def __init__(self):
         self.verbose = False
         self.summary_on = True
+        self.extra = True
+        self.light = True
+        self.full = True
 
     def print_summary(self, category, good, total):
         if self.summary_on:
@@ -83,9 +85,9 @@ class TestPrinter:
         print("\033[91m" + message + "\033[0m")
 
     def print_result(self, test_result, file_name):
-        if (test_result):
+        if (test_result and ((not self.extra and not self.light) or self.full)):
             print("\033[32m[TESTME] Test :", file_name, "passed\033[0m")
-        elif (not test_result):
+        elif (not test_result and (not self.extra or self.light or self.full)):
             print("\033[91m[TESTME] Test :", file_name, "failed\033[0m")
 
 class TestSuit:
@@ -346,6 +348,10 @@ def main():
     parse_argv()
 
     printer.verbose = testme_args.get('verbose', None)
+    printer.extra = testme_args.get('extra_light_display', None)
+    printer.light = testme_args.get('light_display', None)
+    printer.full = testme_args.get('full_display', None)
+    testme_args['threads'] = testme_args['threads'] if testme_args.get('threads', None) else 1
 
     if testme_args.get('dir', None) == None:
         testme_args['dir'] = os.getcwd()
