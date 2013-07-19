@@ -84,10 +84,10 @@ class TestPrinter:
     def print_error(self, message):
         print("\033[91m" + message + "\033[0m")
 
-    def print_result(self, test_result, file_name):
-        if (test_result and ((not self.extra and not self.light) or self.full)):
+    def print_result(self, test_result, file_name, opt):
+        if (test_result and ((opt or self.full) and not self.extra and not self.light)):
             print("\033[32m[TESTME] Test :", file_name, "passed\033[0m")
-        elif (not test_result and (not self.extra or self.light or self.full)):
+        elif (not test_result and ((opt or self.full or self.light) and not self.extra)):
             print("\033[91m[TESTME] Test :", file_name, "failed\033[0m")
 
 class TestSuit:
@@ -190,7 +190,10 @@ class TestSuit:
         if ret_value:
             self.cat_good += 1
             self.total_good += 1
-        self.printer.print_result(ret_value, test_file)
+
+        display_opt = ((ret_value and self.cat_field_get('display_ok_tests')) or
+                      (not ret_value and self.cat_field_get('display_ko_tests')))
+        self.printer.print_result(ret_value, test_file, display_opt)
 
     def thread_run(self, dir_file):
         if dir_file.endswith(self.cat_field_get(self.ext)):
@@ -204,8 +207,10 @@ class TestSuit:
                 pool.add_task(target=self.run_test, args=(dir_file,))
 
             pool.wait_completion()
-            self.printer.print_summary(self.running_cat, self.cat_good,
-                                       self.cat_test)
+
+            if self.cat_field_get('display_summary') or self.printer.full:
+                self.printer.print_summary(self.running_cat, self.cat_good,
+                                           self.cat_test)
 
         except OSError:
            self.printer.print_error("[TESTME] Fatal error with " +
