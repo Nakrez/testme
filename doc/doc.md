@@ -42,6 +42,12 @@ o-h, --help            show this help message and exit
     * -l \--light-display
 
         Only display tests that failed
+    * --threads #thread
+
+        Indicate how many threads `TestMe` can use to run tests
+    * --timeout #seconds
+
+        Specifie timeout (in seconds) for each test
 
 Configuration file
 ==================
@@ -191,9 +197,20 @@ your tests.
 
     `TestMe` will display every test that fails
 
+* `display_timeout_tests (default = true)`
+
+    `TestMe` will display a every test that timeout
+
 * `display_summary (default = true)`
 
     `TestMe` will display a summary of all test run/failed/passed
+
+### Other ###
+
+* `timeout (default = 5)`
+
+    Set timeout value for all tests of a category (in second). You can use
+    floating point number (example 0.5 is 1/2 second)
 
 Variables
 ---------
@@ -225,7 +242,11 @@ Variables in configuration file must be surrounded by \$\{\}. For example variab
     only place where you may need the current input treated for example to
     pass it a command line of a binary (See example configuration file section
     `python_input`)
+* `TESTME_TEMPFILE`
 
+    Generate a temporary name from the basename of the current test. For
+    example if the test is my_test.py the tempfile name will be my_test.tmp
+    This file is automatically delete after use.
 Example
 -------
 
