@@ -188,6 +188,7 @@ class TestSuit:
             input_file = os.path.join(self.cat_field_get('input_dir'), test_file)
             self.environement['TESTME_RUNNING_INPUT'] = input_file
 
+        self.environement['TESTME_TEMPFILE'] = self.change_extension(os.path.basename(test_file), 'tmp')
         stdinput = self.stdin_input(test_file)
 
         command = self.cat_field_get('cmd_line')
@@ -220,7 +221,10 @@ class TestSuit:
 
         display_opt = ((ret_value and self.cat_field_get('display_ok_tests')) or
                       (not ret_value and self.cat_field_get('display_ko_tests')))
+
         self.printer.print_result(ret_value, test_file, display_opt)
+
+        os.unlink(self.environnement['TESTME_TEMPFILE'])
 
     def thread_run(self, dir_file):
         if dir_file.endswith(self.cat_field_get(self.ext)):
