@@ -28,6 +28,7 @@ import configparser
 import filecmp
 import argparse
 import logging
+import time
 from threading import Thread
 from queue import Queue
 
@@ -89,6 +90,10 @@ class TestPrinter:
             print("\033[32m[TESTME] Test :", file_name, "passed\033[0m")
         elif (not test_result and ((opt or self.full or self.light) and not self.extra)):
             print("\033[91m[TESTME] Test :", file_name, "failed\033[0m")
+
+    def print_timeout(self, file_name, opt):
+        if ((opt or self.full or self.light) and not self.extra):
+            print("\033[34m[TESTME] Test :", file_name, "timeout\033[0m")
 
 class TestSuit:
     def __init__(self, printer):
@@ -159,6 +164,20 @@ class TestSuit:
 
         return ret
 
+    def handle_timeout(self, process, test_file):
+        timeout = self.cat_field_get('timeout')
+        timeout = timeout + time.time()
+
+        while time.time() < timeout and process.poll() == None:
+            time.sleep(.001)
+
+        if process.poll() == None:
+            self.printer.print_timeout(test_file, self.cat_field_get('display_timeout_tests'))
+            process.kill()
+            return False
+
+        return True
+
     def run_test(self, test_file):
         self.total_test += 1
         self.cat_test += 1
@@ -178,7 +197,15 @@ class TestSuit:
                                    stderr=subprocess.PIPE,
                                    shell=True)
 
-        stdout, stderr = process.communicate(stdinput.encode('utf-8'))
+        process.stdin.write(stdinput.encode('utf-8'))
+        process.stdin.close()
+
+        if self.handle_timeout(process, test_file) == False:
+            return
+
+        stdout = process.stdout.read()
+        stderr = process.stderr.read()
+
         stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
 
         ret_value = self.compare_out('stdout', stdout, ret_value, test_file)
@@ -262,9 +289,11 @@ class ConfigBuilder:
                 'stderr_ext' : 'err',
                 'cmd_line' : '',
                 'check_code' : 0,
+                'timeout' : 5,
                 'error_code' : ["0"],
                 'display_ok_tests' : 1,
                 'display_ko_tests' : 1,
+                'display_timeout_tests' : 1,
                 'display_summary' : 1}
 
     def get_bool(self, section, value):
@@ -285,7 +314,7 @@ class ConfigBuilder:
 
     def get_int(self, section, value):
         try:
-            self.configuration[section][value] = self.parser.getint(section, value)
+            self.configuration[section][value] = self.parser.getfloat(section, value)
         except configparser.NoOptionError:
             return 0
         except:
@@ -311,13 +340,16 @@ class ConfigBuilder:
             self.get_string(section, 'stdin_ext')
             self.get_string(section, 'stdout_ext')
             self.get_string(section, 'stderr_ext')
-            self.get_string(section, 'cmd_line')
+            self.get_int(section, 'timeout')
             self.get_bool(section, 'check_code')
             self.get_string(section, 'error_code')
             self.get_bool(section, 'display_ok_tests')
             self.get_bool(section, 'diplay_ko_tests')
+            self.get_bool(section, 'display_timeout_tests')
             self.get_bool(section, 'display_summary')
 
+            if testme_args.get('timeout', None):
+                self.configuration[section]['timeout'] = testme_args['timeout']
             if self.configuration[section]['error_code'] is str:
                 self.configuration[section]['error_code'] = self.configuration[section]['error_code'].split("|")
 
@@ -335,6 +367,8 @@ def parse_argv():
                         help='The directory where you want to run testme')
     parser.add_argument('--threads', action="store", type=int,
                         help='Indicate the number of thread you want to use')
+    parser.add_argument('--timeout', action="store", type=float,
+                        help='Set a timeout for all tests')
     parser.add_argument('-v', '--verbose', action="store_true",
                         help='TestMe will display extra informations')
     parser.add_argument('-c', '--category', nargs='+', action="store",
