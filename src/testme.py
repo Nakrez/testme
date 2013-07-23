@@ -223,12 +223,10 @@ class TestSuit:
             if output == None:
                 return False
 
-            stdout, stderr, ret_code = output
+            stdout_comp, stderr_comp, ret_code = output
 
-            if stdout_comp != None:
-                ret &= stdout_comp == stdout
-            if stderr_comp != None:
-                ret &= stderr_comp == stderr
+            ret &= stdout_comp == stdout
+            ret &= stderr_comp == stderr
 
         return ret
 
