@@ -26,8 +26,10 @@
 <li><a href="#stdout-options">stdout options</a></li>
 <li><a href="#stderr-options">stderr options</a></li>
 <li><a href="#command-line-invocation">Command line invocation</a></li>
+<li><a href="#comparaison-with-binary">Comparaison with binary</a></li>
 <li><a href="#error-code-check">Error code check</a></li>
 <li><a href="#display-options">Display options</a></li>
+<li><a href="#other">Other</a></li>
 </ul></li>
 <li><a href="#variables">Variables</a></li>
 <li><a href="#example">Example</a></li>
@@ -35,7 +37,7 @@
 </ul>
 </div>
 <h1 id="usage"><a href="#usage">Usage</a></h1>
-<p>testme.py [-h][--dir DIR] [-v][-c CATEGORY [CATEGORY ...]] [-x][-f] [-l]</p>
+<p>usage: testme.py [-h][--dir DIR] [–threads THREADS][--timeout TIMEOUT] [-v][-c CATEGORY [CATEGORY ...]] [-x][-f] [-l]</p>
 <p>If you don’t specify any directory to run. Then <code>TestMe</code> will try to run in the current directory o-h, –help show this help message and exit –dir DIR The directory where you want to run testme -v, –verbose TestMe will display extra informations -c CATEGORY [CATEGORY …], –category CATEGORY [CATEGORY …] Select specific categories to run -x, –extra-light-display Only print summary of each run category -f, –full-display Print all tests result -l, –light-display Print only failed tests</p>
 <ul>
 <li><p>Options:</p>
@@ -53,7 +55,11 @@ Only display summary of each categories</li>
 <li><p>-f --full-display</p>
 Display all run tests</li>
 <li><p>-l --light-display</p>
-<p>Only display tests that failed</p></li>
+Only display tests that failed</li>
+<li><p>–threads #thread</p>
+Indicate how many threads <code>TestMe</code> can use to run tests</li>
+<li><p>–timeout #seconds</p>
+<p>Specifie timeout (in seconds) for each test</p></li>
 </ul></li>
 </ul>
 <h1 id="configuration-file"><a href="#configuration-file">Configuration file</a></h1>
@@ -112,6 +118,14 @@ Display all run tests</li>
 <li><p><code>cmd_line</code></p>
 <p>Specify how to invoke a test. You have access to the special variable <code>TESTME_RUNNING_INPUT</code> (See <code>Variables</code> section for more infos) The command must be expressed in shell like style. If you have many binary invocation separated by <code>;</code> or <code>|</code> or <code>&amp;&amp;</code> or <code>||</code> only the last one will be tested.</p></li>
 </ul>
+<h3 id="comparaison-with-binary"><a href="#comparaison-with-binary">Comparaison with binary</a></h3>
+<p>These options allow you to compare stdout and stderr from the run of an other binary (be carefull stdin are also passed to compare_cmd)</p>
+<ul>
+<li><p><code>compare (default = false)</code></p>
+<p>Activate the binary comparaison</p></li>
+<li><p><code>compare_cmd</code></p>
+<p>Specify the command that has to be compared with <code>cmd_line</code>. The same specifications apply to this variable and <code>cmd_line</code></p></li>
+</ul>
 <h3 id="error-code-check"><a href="#error-code-check">Error code check</a></h3>
 <p>These variables allow you to enable and specify a return code that the command line must produce.</p>
 <ul>
@@ -127,8 +141,15 @@ Display all run tests</li>
 <p><code>TestMe</code> will display every test that runs correctly</p></li>
 <li><p><code>diplay_ko_tests (default = true)</code></p>
 <p><code>TestMe</code> will display every test that fails</p></li>
+<li><p><code>display_timeout_tests (default = true)</code></p>
+<p><code>TestMe</code> will display a every test that timeout</p></li>
 <li><p><code>display_summary (default = true)</code></p>
 <p><code>TestMe</code> will display a summary of all test run/failed/passed</p></li>
+</ul>
+<h3 id="other"><a href="#other">Other</a></h3>
+<ul>
+<li><p><code>timeout (default = 5)</code></p>
+<p>Set timeout value for all tests of a category (in second). You can use floating point number (example 0.5 is 1/2 second)</p></li>
 </ul>
 <h2 id="variables"><a href="#variables">Variables</a></h2>
 <p>With <code>TestMe</code> you can use few variables to get specific directories, the current processed input, …</p>
@@ -143,7 +164,9 @@ The name of the current category (only available when specifying a category)</li
 The root directory of the category (only available when specifying a category)</li>
 <li><p><code>TESTME_RUNNING_INPUT</code></p>
 <p>This variable will take the value of the input value read.</p>
-<p>This variable is only available with <code>cmd_line</code> option because this is the only place where you may need the current input treated for example to pass it a command line of a binary (See example configuration file section <code>python_input</code>)</p></li>
+This variable is only available with <code>cmd_line</code> option because this is the only place where you may need the current input treated for example to pass it a command line of a binary (See example configuration file section <code>python_input</code>)</li>
+<li><p><code>TESTME_TEMPFILE</code></p>
+<p>Generate a temporary name from the basename of the current test. For example if the test is my_test.py the tempfile name will be my_test.tmp This file is automatically delete after use.</p></li>
 </ul>
 <h2 id="example"><a href="#example">Example</a></h2>
 <p>The configuration file above show two categories.</p>

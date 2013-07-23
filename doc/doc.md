@@ -5,7 +5,8 @@
 Usage
 =====
 
-testme.py [-h] [--dir DIR] [-v] [-c CATEGORY [CATEGORY ...]] [-x] [-f] [-l]
+usage: testme.py [-h] [--dir DIR] [--threads THREADS] [--timeout TIMEOUT] [-v]
+                 [-c CATEGORY [CATEGORY ...]] [-x] [-f] [-l]
 
 If you don't specify any directory to run. Then `TestMe` will try to run in the
 current directory
@@ -261,6 +262,7 @@ Variables in configuration file must be surrounded by \$\{\}. For example variab
     Generate a temporary name from the basename of the current test. For
     example if the test is my_test.py the tempfile name will be my_test.tmp
     This file is automatically delete after use.
+
 Example
 -------
 
