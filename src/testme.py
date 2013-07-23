@@ -46,6 +46,7 @@ class ThreadPool:
 
         def run(self):
             while True:
+                # Pick a task and run it
                 task,args = self.tasks.get(True)
                 task(*args)
                 self.tasks.task_done()
@@ -103,8 +104,10 @@ class TestSuit:
         self.cat_good = 0
         self.printer = printer
         self.lock = threading.Lock()
+        self.pool = ThreadPool(testme_args['threads'])
 
     def expand(self, string):
+        # Expand all variables ${...} and replace it by it value
         while 1:
             m = re.search('\$\{(.*?)\}', string)
 
@@ -116,6 +119,8 @@ class TestSuit:
         return string
 
     def cat_field_get(self, field):
+        # Get a field of the configuration file. If the variable is a string
+        # it try to expand variables
         if isinstance(self.test_list[self.running_cat][field], str):
             return self.expand(self.test_list[self.running_cat][field])
         else:
@@ -185,13 +190,16 @@ class TestSuit:
 
         self.lock.acquire()
 
+        # Get input content if needed
         if self.cat_field_get('input'):
             input_file = os.path.join(self.cat_field_get('input_dir'), test_file)
             self.environement['TESTME_RUNNING_INPUT'] = input_file
 
+        # Generate TEMPFILE variable
         self.environement['TESTME_TEMPFILE'] = self.change_extension(os.path.basename(test_file), 'tmp')
         stdinput = self.stdin_input(test_file)
 
+        # Expand command to run
         command = self.cat_field_get('cmd_line')
 
         self.lock.release()
@@ -207,14 +215,17 @@ class TestSuit:
         if self.handle_timeout(process, test_file) == False:
             return
 
+        # Get the output of the process
         stdout = process.stdout.read()
         stderr = process.stderr.read()
 
         stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
 
+        # Compare stdout and stderr value if needed
         ret_value = self.compare_out('stdout', stdout, ret_value, test_file)
         ret_value = self.compare_out('stderr', stderr, ret_value, test_file)
 
+        # Check error code of the programm
         if self.cat_field_get('check_code'):
             ret_value &= str(process.returncode) in self.cat_field_get('error_code')
 
@@ -222,6 +233,7 @@ class TestSuit:
             self.cat_good += 1
             self.total_good += 1
 
+        # Display test result
         display_opt = ((ret_value and self.cat_field_get('display_ok_tests')) or
                       (not ret_value and self.cat_field_get('display_ko_tests')))
 
@@ -239,11 +251,12 @@ class TestSuit:
     def run_directory(self):
         global testme_args
         try:
-            pool = ThreadPool(testme_args['threads'])
-            for dir_file in os.listdir(self.cat_field_get(self.running_dir)):
-                pool.add_task(target=self.run_test, args=(dir_file,))
+            # Create the pool of thread
 
-            pool.wait_completion()
+            for dir_file in os.listdir(self.cat_field_get(self.running_dir)):
+                self.pool.add_task(target=self.run_test, args=(dir_file,))
+
+            self.pool.wait_completion()
 
             if self.cat_field_get('display_summary') or self.printer.full:
                 self.printer.print_summary(self.running_cat, self.cat_good,
