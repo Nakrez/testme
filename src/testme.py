@@ -150,12 +150,12 @@ class TestSuit:
 
         return stdin_val
 
-    def compare_out(self, output, value, ret, test_file):
+    def get_output(self, output, test_file):
+        file_content = None
 
         if self.cat_field_get(output):
             filename = self.change_extension(test_file, self.cat_field_get(output + '_ext'))
             filename = os.path.join(self.cat_field_get(output + '_dir'), filename)
-            file_content = ""
 
             if os.path.exists(filename):
                 fd = open(filename, "r")
@@ -164,9 +164,26 @@ class TestSuit:
             else:
                 print_verbose("\033[33m[TESTME] " + filename + " not present " + output + " ignored\033[0m")
 
-            ret = ret and (file_content == value)
+        return file_content
 
-        return ret
+    def run_process(self, command, stdinput, test_file):
+        process = subprocess.Popen(command, stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   shell=True)
+
+        process.stdin.write(stdinput.encode('utf-8'))
+        process.stdin.close()
+
+        if self.handle_timeout(process, test_file) == False:
+            return None
+
+        # Get the output of the process
+        stdout = process.stdout.read()
+        stderr = process.stderr.read()
+
+        stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
+        return (stdout, stderr, process.returncode)
 
     def handle_timeout(self, process, test_file):
         timeout = self.cat_field_get('timeout')
@@ -182,11 +199,46 @@ class TestSuit:
 
         return True
 
+    def compare_output(self, stdinput, stdout, stderr, test_file, input_file, temp_file):
+        ret = True
+        stdout_comp = self.get_output('stdout', test_file)
+        stderr_comp = self.get_output('stderr', test_file)
+
+        if not self.cat_field_get("compare"):
+            if stdout_comp != None:
+                ret &= stdout_comp == stdout
+            if stderr_comp != None:
+                ret &= stderr_comp == stderr
+        else:
+            self.lock.acquire()
+            self.environement['TESTME_RUNNING_INPUT'] = input_file
+            self.environement['TESTME_TEMPFILE'] = temp_file
+
+            command = self.cat_field_get('compare_cmd')
+
+            self.lock.release()
+
+            output = self.run_process(command, stdinput, test_file)
+
+            if output == None:
+                return False
+
+            stdout, stderr, ret_code = output
+
+            if stdout_comp != None:
+                ret &= stdout_comp == stdout
+            if stderr_comp != None:
+                ret &= stderr_comp == stderr
+
+        return ret
+
     def run_test(self, test_file):
         self.total_test += 1
         self.cat_test += 1
 
         ret_value = True
+        input_file = ""
+        temp_file = ""
 
         self.lock.acquire()
 
@@ -197,6 +249,7 @@ class TestSuit:
 
         # Generate TEMPFILE variable
         self.environement['TESTME_TEMPFILE'] = self.change_extension(os.path.basename(test_file), 'tmp')
+        temp_file = self.environement['TESTME_TEMPFILE']
         stdinput = self.stdin_input(test_file)
 
         # Expand command to run
@@ -204,30 +257,20 @@ class TestSuit:
 
         self.lock.release()
 
-        process = subprocess.Popen(command, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE,
-                                   shell=True)
+        output = self.run_process(command, stdinput, test_file)
 
-        process.stdin.write(stdinput.encode('utf-8'))
-        process.stdin.close()
-
-        if self.handle_timeout(process, test_file) == False:
+        if output == None:
             return
 
-        # Get the output of the process
-        stdout = process.stdout.read()
-        stderr = process.stderr.read()
-
-        stdout, stderr = stdout.decode('utf-8'), stderr.decode('utf-8')
-
-        # Compare stdout and stderr value if needed
-        ret_value = self.compare_out('stdout', stdout, ret_value, test_file)
-        ret_value = self.compare_out('stderr', stderr, ret_value, test_file)
+        stdout, stderr, ret_code = output
 
         # Check error code of the programm
         if self.cat_field_get('check_code'):
-            ret_value &= str(process.returncode) in self.cat_field_get('error_code')
+            ret_value &= str(ret_code) in self.cat_field_get('error_code')
+
+        # Compare stdout and stderr value if needed
+        ret_value &= self.compare_output(stdinput, stdout, stderr, test_file, input_file, temp_file)
+
 
         if ret_value:
             self.cat_good += 1
@@ -251,11 +294,11 @@ class TestSuit:
     def run_directory(self):
         global testme_args
         try:
-            # Create the pool of thread
-
+            # Add all tests as task for the thread pool
             for dir_file in os.listdir(self.cat_field_get(self.running_dir)):
                 self.pool.add_task(target=self.run_test, args=(dir_file,))
 
+            # Wait for the pool to complete
             self.pool.wait_completion()
 
             if self.cat_field_get('display_summary') or self.printer.full:
@@ -302,6 +345,7 @@ class ConfigBuilder:
                 'stdin' : 0, # Stdin test
                 'stderr' : 0, # Stderr test
                 'input' : 0, # Input test
+                'compare' : 0, # Binary output comparaison
                 'input_dir' : os.path.join(testme_args['dir'], cat_name, "input"),
                 'stdout_dir' : os.path.join(testme_args['dir'], cat_name, "stdout"),
                 'stdin_dir' : os.path.join(testme_args['dir'], cat_name, "stdin"),
@@ -311,6 +355,7 @@ class ConfigBuilder:
                 'stdin_ext' : 'in',
                 'stderr_ext' : 'err',
                 'cmd_line' : '',
+                'compare_cmd' : '',
                 'check_code' : 0,
                 'timeout' : 5,
                 'error_code' : ["0"],
@@ -354,11 +399,13 @@ class ConfigBuilder:
             self.get_bool(section, 'stdin')
             self.get_bool(section, 'stderr')
             self.get_bool(section, 'input')
+            self.get_bool(section, 'compare')
             self.get_string(section, 'stdout_dir')
             self.get_string(section, 'stdin_dir')
             self.get_string(section, 'stderr_dir')
             self.get_string(section, 'input_dir')
             self.get_string(section, 'cmd_line')
+            self.get_string(section, 'compare_cmd')
             self.get_string(section, 'input_ext')
             self.get_string(section, 'stdin_ext')
             self.get_string(section, 'stdout_ext')
@@ -409,10 +456,12 @@ def main():
     printer = TestPrinter()
     parse_argv()
 
+    # Set print info from command line in the printer
     printer.verbose = testme_args.get('verbose', None)
     printer.extra = testme_args.get('extra_light_display', None)
     printer.light = testme_args.get('light_display', None)
     printer.full = testme_args.get('full_display', None)
+
     testme_args['threads'] = testme_args['threads'] if testme_args.get('threads', None) else 1
 
     if testme_args.get('dir', None) == None:
