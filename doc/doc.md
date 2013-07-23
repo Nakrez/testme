@@ -171,6 +171,20 @@ This variable is mandatory and does not have any default value
     invocation separated by `;` or `|` or `&&` or `||` only the last one will
     be tested.
 
+### Comparaison with binary ###
+
+These options allow you to compare stdout and stderr from the run of an other
+binary (be carefull stdin are also passed to compare_cmd)
+
+* `compare (default = false)`
+
+    Activate the binary comparaison
+
+* `compare_cmd`
+
+    Specify the command that has to be compared with `cmd_line`. The same
+    specifications apply to this variable and `cmd_line`
+
 ### Error code check ###
 
 These variables allow you to enable and specify a return code that the command
