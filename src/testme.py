@@ -29,7 +29,7 @@ import filecmp
 import argparse
 import logging
 import time
-from threading import Thread
+import threading
 from queue import Queue
 
 testme_version = "0.2"
@@ -37,7 +37,7 @@ testme_config_name = "testme.conf"
 testme_args = {'threads' : 1}
 
 class ThreadPool:
-    class _ThreadQueue(Thread):
+    class _ThreadQueue(threading.Thread):
         def __init__(self, pool, *args, **kwargs):
             super(ThreadPool._ThreadQueue, self).__init__(*args, **kwargs)
             self.tasks = pool.tasks
@@ -68,7 +68,6 @@ class TestPrinter:
         self.summary_on = True
         self.extra = True
         self.light = True
-        self.full = True
 
     def print_summary(self, category, good, total):
         if self.summary_on:
@@ -103,6 +102,7 @@ class TestSuit:
         self.cat_test = 0
         self.cat_good = 0
         self.printer = printer
+        self.lock = threading.Lock()
 
     def expand(self, string):
         while 1:
@@ -183,6 +183,8 @@ class TestSuit:
 
         ret_value = True
 
+        self.lock.acquire()
+
         if self.cat_field_get('input'):
             input_file = os.path.join(self.cat_field_get('input_dir'), test_file)
             self.environement['TESTME_RUNNING_INPUT'] = input_file
@@ -191,6 +193,8 @@ class TestSuit:
         stdinput = self.stdin_input(test_file)
 
         command = self.cat_field_get('cmd_line')
+
+        self.lock.release()
 
         process = subprocess.Popen(command, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
