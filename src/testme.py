@@ -162,7 +162,7 @@ class TestSuit:
                 file_content = fd.read()
                 fd.close()
             else:
-                print_verbose("\033[33m[TESTME] " + filename + " not present " + output + " ignored\033[0m")
+                self.printer.print_verbose("\033[33m[TESTME] " + filename + " not present " + output + " ignored\033[0m")
 
         return file_content
 
